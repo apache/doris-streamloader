@@ -19,4 +19,66 @@ under the License.
 
 # Apache Doris StreamLoader
 
-TODO
+A robust, high-performance and user-friendly alternative to the traditional curl-based Stream Load.
+
+
+
+## Key Features
+
+- **Parallel Loading**: Split data files automatically and perform parallel loading
+- **Support for Multiple Files and Directories**: Support multiple files and directories load with one shot
+- **Path Traversal Support**: Support path traversal when the source files are in directories
+- **Resilience and Continuity**: Resume loading from previous failures and cancellations
+- **Automatic Retry Mechanism**: Retry automatically when failure
+- **Comprehensive and Concise Input Parameters**
+
+
+
+## Usage
+
+```shell
+doris-streamloader --source_file={FILE_LIST} --url={FE_OR_BE_SERVER_URL}:{PORT} --header={STREAMLOAD_HEADER} --db={TARGET_DATABASE} --table={TARGET_TABLE}
+```
+
+- `FILE_LIST`: directory or file list, support \* wildcard
+- `FE_OR_BE_SERVER_URL` & `PORT`: doris FE or BE hostname or IP and HTTP port
+- `STREAMLOAD_HEADER`: supports all headers as `curl` Stream Load does，multiple headers are seperated by '?'
+- `TARGET_DATABASE` & `TARGET_TABLE`: indicate the target database and table where the data will be loaded
+
+i.g.:
+
+```shell
+doris-streamloader --source_file="data.csv" --url="http://localhost:8330" --header="column_separator:|?columns:col1,col2" --db="testdb" --table="testtbl"
+```
+
+For additional details and options, refer to our comprehensive docs blew.
+
+
+
+## Docs
+
+[User Guide](https://doris.apache.org/docs/ecosystem/doris-streamloader)
+
+[中文使用文档]([https://doris.apache.org](https://doris.apache.org/)/zh-CN/docs/ecosystem/doris-streamloader)
+
+
+
+## Build
+
+To build StreamLoader, ensure you have golang installed (version >= 1.19.9). For example, on CentOS:
+
+```
+yum install golang
+```
+
+Then, navigate to the StreamLoader directory and execute:
+
+```
+cd doris-streamload && go build
+```
+
+
+
+## License
+
+[Apache License, Version 2.0](https://www.apache.org/licenses/LICENSE-2.0)
