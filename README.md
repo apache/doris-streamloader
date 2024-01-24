@@ -41,17 +41,17 @@ doris-streamloader --source_file={FILE_LIST} --url={FE_OR_BE_SERVER_URL}:{PORT} 
 ```
 
 - `FILE_LIST`: directory or file list, support \* wildcard
-- `FE_OR_BE_SERVER_URL` & `PORT`: doris FE or BE hostname or IP and HTTP port
-- `STREAMLOAD_HEADER`: supports all headers as `curl` Stream Load does，multiple headers are seperated by '?'
+- `FE_OR_BE_SERVER_URL` & `PORT`: Doris FE or BE hostname or IP and HTTP port
+- `STREAMLOAD_HEADER`: supports all headers as `curl` Stream Load does，multiple headers are separated by '?'
 - `TARGET_DATABASE` & `TARGET_TABLE`: indicate the target database and table where the data will be loaded
 
-i.g.:
+e.g.:
 
 ```shell
 doris-streamloader --source_file="data.csv" --url="http://localhost:8330" --header="column_separator:|?columns:col1,col2" --db="testdb" --table="testtbl"
 ```
 
-For additional details and options, refer to our comprehensive docs blew.
+For additional details and options, refer to our comprehensive docs below.
 
 
 
@@ -59,7 +59,7 @@ For additional details and options, refer to our comprehensive docs blew.
 
 [User Guide](https://doris.apache.org/docs/ecosystem/doris-streamloader)
 
-[中文使用文档]([https://doris.apache.org](https://doris.apache.org/)/zh-CN/docs/ecosystem/doris-streamloader)
+[中文使用文档](https://doris.apache.org/zh-CN/docs/ecosystem/doris-streamloader)
 
 
 
@@ -71,10 +71,10 @@ To build StreamLoader, ensure you have golang installed (version >= 1.19.9). For
 yum install golang
 ```
 
-Then, navigate to the StreamLoader directory and execute:
+Then, navigate to the doris-streamloader directory and execute:
 
 ```
-cd doris-streamload && go build
+cd doris-streamloader && go build
 ```
 
 
