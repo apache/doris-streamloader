@@ -37,7 +37,7 @@ A robust, high-performance and user-friendly alternative to the traditional curl
 ## Usage
 
 ```shell
-doris-streamloader --source_file={FILE_LIST} --url={FE_OR_BE_SERVER_URL}:{PORT} --header={STREAMLOAD_HEADER} --db={TARGET_DATABASE} --table={TARGET_TABLE}
+Doris-streamloader --source_file={FILE_LIST} --url={FE_OR_BE_SERVER_URL}:{PORT} --header={STREAMLOAD_HEADER} --db={TARGET_DATABASE} --table={TARGET_TABLE}
 ```
 
 - `FILE_LIST`: directory or file list, support \* wildcard
