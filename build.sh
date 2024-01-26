@@ -16,5 +16,6 @@
 # specific language governing permissions and limitations
 # under the License.
 
+rm -rf version.go
 go generate
 go build
