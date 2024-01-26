@@ -22,16 +22,15 @@ import (
 	"fmt"
 	"math"
 	"os"
-	"os/exec"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 
-	"doris_streamloader/loader"
-	"doris_streamloader/reader"
-	"doris_streamloader/report"
-	"doris_streamloader/utils"
+	"doris-streamloader/loader"
+	file "doris-streamloader/reader"
+	"doris-streamloader/report"
+	"doris-streamloader/utils"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -188,17 +187,11 @@ func initFlags() {
 	utils.InitLog(logLevel)
 }
 
+//go:generate go run gen_version.go
 func paramCheck() {
 	if showVersion {
-		var err error
-		commitHash, err := getCommitHash()
-		if err != nil {
-			log.Warn("Failed to get commit info", err)
-		}
-		version, err := getTag()
-		if err != nil {
-			log.Warn("Failed to get version info", err)
-		}
+		commitHash := GitCommit
+		version := Version
 		fmt.Printf("version %s, git commit %s\n", version, commitHash)
 		os.Exit(0)
 	}
@@ -330,30 +323,6 @@ func createQueues(queues *[]chan []byte) {
 	for i := 0; i < workers; i++ {
 		*queues = append(*queues, make(chan []byte, queueSize))
 	}
-}
-
-func getCommitHash() (string, error) {
-	cmd := exec.Command("git", "rev-parse", "HEAD")
-	outputBytes, err := cmd.Output()
-	if err != nil {
-		return "", err
-	}
-
-	commitHash := string(outputBytes)
-	commitHash = strings.TrimSpace(commitHash)
-
-	return commitHash, nil
-}
-
-func getTag() (string, error) {
-	cmd := exec.Command("git", "describe", "--tags", "--abbrev=0")
-	output, err := cmd.Output()
-	if err != nil {
-		return "", err
-	}
-
-	tag := strings.TrimSpace(string(output))
-	return tag, nil
 }
 
 func main() {

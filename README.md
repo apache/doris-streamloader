@@ -74,7 +74,7 @@ yum install golang
 Then, navigate to the doris-streamloader directory and execute:
 
 ```
-cd doris-streamloader && go build
+cd doris-streamloader && sh build.sh
 ```
 
 
