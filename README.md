@@ -17,7 +17,7 @@ specific language governing permissions and limitations
 under the License.
 -->
 
-# Apache Doris StreamLoader
+# Apache Doris Streamloader
 
 A robust, high-performance and user-friendly alternative to the traditional curl-based Stream Load.
 
@@ -65,7 +65,7 @@ For additional details and options, refer to our comprehensive docs below.
 
 ## Build
 
-To build StreamLoader, ensure you have golang installed (version >= 1.19.9). For example, on CentOS:
+To build Streamloader, ensure you have golang installed (version >= 1.19.9). For example, on CentOS:
 
 ```
 yum install golang
