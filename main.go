@@ -245,7 +245,11 @@ func paramCheck() {
 				continue
 			}
 			kv := strings.Split(v, ":")
-			headers[kv[0]] = kv[1]
+			if len(kv) > 2 {
+				headers[kv[0]] = strings.Join(kv[1:], ":")
+			} else {
+				headers[kv[0]] = kv[1]
+			}
 		}
 	}
 
