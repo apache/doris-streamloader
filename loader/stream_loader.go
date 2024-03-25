@@ -31,7 +31,7 @@ import (
 
 	"github.com/pierrec/lz4/v4"
 	log "github.com/sirupsen/logrus"
-	"doris_streamloader/report"
+	"doris-streamloader/report"
 )
 
 type StreamLoadOption struct {

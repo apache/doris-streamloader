@@ -1,4 +1,4 @@
-module doris_streamloader
+module doris-streamloader
 
 go 1.20
 
