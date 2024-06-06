@@ -42,7 +42,7 @@ const (
 	defaultTimeout              = 60 * 60 * 10
 	defaultBatchRows            = 4096
 	defaultBatchBytes           = 943718400
-	defaultMaxBytesPerTask      = 107374182400
+	defaultMaxBytesPerTask      = 9663676416
 	defaultReportDuration       = 1
 	defaultMaxRetryTimes        = 3
 	defaultRetryInterval        = 60
