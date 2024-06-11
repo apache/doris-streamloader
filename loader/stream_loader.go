@@ -31,7 +31,7 @@ import (
 
 	"github.com/pierrec/lz4/v4"
 	log "github.com/sirupsen/logrus"
-	"doris_streamloader/report"
+	"doris-streamloader/report"
 )
 
 type StreamLoadOption struct {
@@ -416,7 +416,7 @@ func (s *StreamLoad) Wait(loadInfo *LoadInfo, retryCount int, retryInfo *map[int
 	failed := strings.Join(FailedWorkersStrings, ";")
 
 	// retry command
-	command := fmt.Sprintf("./parallel_streamload --source_file %s  --url=\"%s\" --header=\"%s\" --db=\"%s\" --table=\"%s\" -u %s -p \"%s\" --compress=%t --timeout=%d --workers=%d --disk_throughput=%d --streamload_throughput=%d --batch=%d --batch_byte=%d --max_byte_per_task=%d --check_utf8=%t --report_duration=%d --auto_retry=\"%s\" --auto_retry_times=%d --auto_retry_interval=%d",
+	command := fmt.Sprintf("./doris_streamloader --source_file %s  --url=\"%s\" --header=\"%s\" --db=\"%s\" --table=\"%s\" -u %s -p \"%s\" --compress=%t --timeout=%d --workers=%d --disk_throughput=%d --streamload_throughput=%d --batch=%d --batch_byte=%d --max_byte_per_task=%d --check_utf8=%t --report_duration=%d --auto_retry=\"%s\" --auto_retry_times=%d --auto_retry_interval=%d",
 		loadInfo.SourceFilePaths, loadInfo.Url, headers, loadInfo.DbName, loadInfo.TableName, loadInfo.UserName, loadInfo.Password, loadInfo.Compress, loadInfo.Timeout, loadInfo.Workers, loadInfo.DiskThroughput, loadInfo.StreamLoadThroughput, loadInfo.BatchRows, loadInfo.BatchBytes, loadInfo.MaxBytesPerTask, loadInfo.CheckUTF8, loadInfo.ReportDuration, failed, loadInfo.RetryTimes, loadInfo.RetryInterval)
 
 	fmt.Printf("load has some error, and auto retry failed, you can retry by : \n%s\n", command)
