@@ -70,6 +70,7 @@ var (
 	maxBytesPerTask      int
 	debug                bool
 	workers              int
+	enableConcurrency    bool
 	diskThroughput       int
 	streamLoadThroughput int
 	checkUTF8            bool
@@ -245,6 +246,9 @@ func paramCheck() {
 				continue
 			}
 			kv := strings.Split(v, ":")
+			if strings.ToLower(kv[0]) == "format" && strings.ToLower(kv[1]) == "csv" {
+				enableConcurrency = true
+			}
 			if len(kv) > 2 {
 				headers[kv[0]] = strings.Join(kv[1:], ":")
 			} else {
@@ -291,6 +295,11 @@ func paramCheck() {
 
 func calculateAndCheckWorkers(reader *file.FileReader, size int64) {
 	if workers > 0 {
+		return
+	}
+
+	if !enableConcurrency {
+		loadInfo.Workers = 1
 		return
 	}
 
