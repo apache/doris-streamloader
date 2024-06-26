@@ -28,8 +28,8 @@ import (
 	"time"
 
 	log "github.com/sirupsen/logrus"
-	report "doris_streamloader/report"
-	loader "doris_streamloader/loader"
+	report "doris-streamloader/report"
+	loader "doris-streamloader/loader"
 )
 
 type FileReader struct {
