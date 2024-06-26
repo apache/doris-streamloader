@@ -110,7 +110,7 @@ func NewFileReader(filePaths string, batchRows int, batchBytes int, bufferSize i
 // Read File
 func (f *FileReader) Read(reporter *report.Reporter, workers int, maxBytesPerTask int, retryInfo *map[int]int, loadResp *loader.Resp, retryCount int) {
 	index := 0
-	data := f.pool.Get().([]byte)
+	data := make([]byte, 0)
 	count := f.batchRows
 	// sendBytesMap used to record how many bytes a task has sent and whether it has ended
 	// currentTaskMap used to record current task number
@@ -174,7 +174,7 @@ func (f *FileReader) Read(reporter *report.Reporter, workers int, maxBytesPerTas
 						currentTaskMap[index%workers] += 1
 					}
 				}
-				data = f.pool.Get().([]byte)
+				data = make([]byte, 0)
 				count = f.batchRows
 				index++
 			}
@@ -185,6 +185,7 @@ func (f *FileReader) Read(reporter *report.Reporter, workers int, maxBytesPerTas
 		reporter.IncrSendBytes(int64(len(data)))
 		(*f.queues)[index%workers] <- data
 	}
+	data = nil
 }
 
 func (f *FileReader) sendToQueue(reporter *report.Reporter, data []byte, workerIndex int) {
