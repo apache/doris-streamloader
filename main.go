@@ -39,7 +39,7 @@ import (
 const (
 	fileBufferSize              = 16 * 1024 * 1024 // 16MB
 	bufferSize                  = 1 * 1024 * 1024  // 1MB
-	queueSize                   = 50 * 1024 * 1024 //50MB
+	defaultQueueSize            = 100
 	defaultTimeout              = 60 * 60 * 10
 	defaultBatchRows            = 4096
 	defaultBatchBytes           = 943718400
@@ -80,6 +80,7 @@ var (
 	retryInterval        int
 	retryInfo            map[int]int
 	showVersion          bool
+	queueSize            int
 
 	bufferPool = sync.Pool{
 		New: func() interface{} {
@@ -114,6 +115,7 @@ func initFlags() {
 	flag.IntVar(&retryInterval, "auto_retry_interval", defaultRetryInterval, "retry failure")
 	flag.BoolVar(&debug, "debug", false, "enable debug")
 	flag.BoolVar(&showVersion, "version", false, "Display the version")
+	flag.IntVar(&queueSize, "queue_size", defaultQueueSize, "memory queue size")
 
 	flag.Parse()
 
@@ -183,6 +185,7 @@ func initFlags() {
 		fmt.Println("retry_info: ", retry)
 		fmt.Println("retry_times: ", maxRetryTimes)
 		fmt.Println("retry_interval: ", retryInterval)
+		fmt.Println("queue_size: ", queueSize)
 	}
 
 	utils.InitLog(logLevel)
@@ -289,6 +292,11 @@ func paramCheck() {
 	if retryInterval < 0 {
 		log.Warnf("retryInterval invalid: %d, replace with default value: %d", retryInterval, defaultRetryInterval)
 		retryInterval = defaultRetryInterval
+	}
+
+	if queueSize <= 0 {
+		log.Warnf("queueSize invalid: %d, replace with default value: %d", queueSize, defaultQueueSize)
+		queueSize = defaultQueueSize
 	}
 }
 
