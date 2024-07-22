@@ -59,3 +59,7 @@ github:
 notifications:
     pullrequests_status:  commits@doris.apache.org
 
+github:
+  features:
+    issues: true
+
