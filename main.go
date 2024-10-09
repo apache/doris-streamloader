@@ -242,6 +242,7 @@ func paramCheck() {
 	}
 
 	// split header "a:b?c:d" into {a:b, c:d}
+	enableConcurrency = true
 	if header != "" {
 		headers = make(map[string]string)
 		for _, v := range strings.Split(header, "?") {
@@ -249,8 +250,8 @@ func paramCheck() {
 				continue
 			}
 			kv := strings.Split(v, ":")
-			if strings.ToLower(kv[0]) == "format" && strings.ToLower(kv[1]) == "csv" {
-				enableConcurrency = true
+			if strings.ToLower(kv[0]) == "format" && strings.ToLower(kv[1]) != "csv" {
+				enableConcurrency = false
 			}
 			if len(kv) > 2 {
 				headers[kv[0]] = strings.Join(kv[1:], ":")
@@ -308,6 +309,7 @@ func calculateAndCheckWorkers(reader *file.FileReader, size int64) {
 
 	if !enableConcurrency {
 		loadInfo.Workers = 1
+		workers = 1
 		return
 	}
 
