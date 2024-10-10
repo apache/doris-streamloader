@@ -18,6 +18,7 @@
 package loader
 
 import (
+	"doris-streamloader/report"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -32,8 +33,6 @@ import (
 
 	lz4 "github.com/pierrec/lz4/v4"
 	log "github.com/sirupsen/logrus"
-
-	"doris-streamloader/report"
 )
 
 type StreamLoadOption struct {
