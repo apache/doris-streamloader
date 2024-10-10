@@ -241,6 +241,11 @@ func paramCheck() {
 		os.Exit(1)
 	}
 
+	if userName == "" {
+		log.Errorf("user name is empty")
+		os.Exit(1)
+	}
+
 	// split header "a:b?c:d" into {a:b, c:d}
 	enableConcurrency = true
 	if header != "" {

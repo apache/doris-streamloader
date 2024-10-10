@@ -23,15 +23,15 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
 	"unicode/utf8"
 
-	"github.com/pierrec/lz4/v4"
-	log "github.com/sirupsen/logrus"
 	"doris-streamloader/report"
+	log "github.com/sirupsen/logrus"
 )
 
 type StreamLoadOption struct {
@@ -143,7 +143,7 @@ func (s *StreamLoad) createUrl() string {
 }
 
 // stream load create http request with string data
-func (s *StreamLoad) createRequest(url string, reader io.Reader) (req *http.Request, err error) {
+func (s *StreamLoad) createRequest(url string, reader io.Reader, workerIndex int, taskIndex int) (req *http.Request, err error) {
 	req, err = http.NewRequest("PUT", url, reader)
 	if err != nil {
 		return
@@ -155,6 +155,19 @@ func (s *StreamLoad) createRequest(url string, reader io.Reader) (req *http.Requ
 	req.Header.Set("Content-Type", "text/plain")
 	for k, v := range s.headers {
 		req.Header.Set(k, v)
+		// If a label has already been set in the headers, to prevent conflicts,
+		//generate a unique label by combining the original label, worker index, and task index.
+		if k == "label" {
+			var builder strings.Builder
+			builder.WriteString(v)
+			builder.WriteString("_")
+			builder.WriteString(strconv.Itoa(workerIndex))
+			builder.WriteString("_")
+			builder.WriteString(strconv.Itoa(taskIndex))
+
+			req.Header.Set("label", builder.String())
+		}
+
 	}
 
 	if s.Compress {
@@ -228,10 +241,10 @@ func (s *StreamLoad) readData(isEOS *atomic.Bool, rawWriter *io.PipeWriter, read
 	}
 }
 
-func (s *StreamLoad) send(url string, reader io.Reader) (*http.Response, error) {
+func (s *StreamLoad) send(url string, reader io.Reader, workerIndex int, taskIndex int) (*http.Response, error) {
 	realUrl := url
 	for {
-		req, err := s.createRequest(realUrl, reader)
+		req, err := s.createRequest(realUrl, reader, workerIndex, taskIndex)
 		if err != nil {
 			if req == nil {
 				return nil, err
@@ -347,7 +360,7 @@ func (s *StreamLoad) executeGetAndSend(maxRowsPerTask int, maxBytesPerTask int, 
 				workerIndex:     workerIndex,
 				taskIndex:       taskIndex,
 			})
-		if resp, err := s.send(url, NopCloser(pr)); err != nil {
+		if resp, err := s.send(url, NopCloser(pr), workerIndex, taskIndex); err != nil {
 			s.handleSendError(workerIndex, taskIndex)
 			log.Errorf("Send error, resp: %v error message: %v", resp, err)
 			return
