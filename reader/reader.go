@@ -27,9 +27,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	log "github.com/sirupsen/logrus"
-	report "doris-streamloader/report"
 	loader "doris-streamloader/loader"
+	report "doris-streamloader/report"
+	log "github.com/sirupsen/logrus"
 )
 
 type FileReader struct {

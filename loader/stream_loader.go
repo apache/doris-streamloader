@@ -18,19 +18,22 @@
 package loader
 
 import (
-	"doris-streamloader/report"
 	"encoding/json"
 	"fmt"
-	"github.com/pierrec/lz4/v4"
-	log "github.com/sirupsen/logrus"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 	"unicode/utf8"
+
+	lz4 "github.com/pierrec/lz4/v4"
+	log "github.com/sirupsen/logrus"
+
+	"doris-streamloader/report"
 )
 
 type StreamLoadOption struct {
