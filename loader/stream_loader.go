@@ -31,7 +31,7 @@ import (
 	"time"
 	"unicode/utf8"
 
-	lz4 "github.com/pierrec/lz4/v4"
+	"github.com/pierrec/lz4/v4"
 	log "github.com/sirupsen/logrus"
 )
 
