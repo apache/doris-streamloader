@@ -27,9 +27,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	log "github.com/sirupsen/logrus"
-	report "doris-streamloader/report"
 	loader "doris-streamloader/loader"
+	report "doris-streamloader/report"
+	log "github.com/sirupsen/logrus"
 )
 
 type FileReader struct {
@@ -108,7 +108,8 @@ func NewFileReader(filePaths string, batchRows int, batchBytes int, bufferSize i
 }
 
 // Read File
-func (f *FileReader) Read(reporter *report.Reporter, workers int, maxBytesPerTask int, retryInfo *map[int]int, loadResp *loader.Resp, retryCount int) {
+func (f *FileReader) Read(reporter *report.Reporter, workers int, maxBytesPerTask int, retryInfo *map[int]int,
+	loadResp *loader.Resp, retryCount int, lineDelimiter byte) {
 	index := 0
 	data := f.pool.Get().([]byte)
 	count := f.batchRows
@@ -129,7 +130,7 @@ func (f *FileReader) Read(reporter *report.Reporter, workers int, maxBytesPerTas
 			if atomic.LoadUint64(&reporter.FinishedWorkers) == atomic.LoadUint64(&reporter.TotalWorkers) {
 				return
 			}
-			line, err := reader.ReadBytes('\n')
+			line, err := reader.ReadBytes(lineDelimiter)
 			if err == io.EOF {
 				file.Close()
 				break
