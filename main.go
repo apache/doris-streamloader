@@ -254,12 +254,13 @@ func paramCheck() {
 				enableConcurrency = false
 			}
 
-			if strings.ToLower(kv[0]) == "line_delimiter"   {
+			if strings.ToLower(kv[0]) == "line_delimiter" {
 				if len(kv[1]) == 1 {
 					line_delimiter = kv[1][0]
 				} else {
 					log.Errorf("line_delimiter invalid: %s", line_delimiter)
 				}
+			}
 
 			if len(kv) > 2 {
 				headers[kv[0]] = strings.Join(kv[1:], ":")
