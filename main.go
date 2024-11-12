@@ -186,7 +186,6 @@ func initFlags() {
 		fmt.Println("retry_times: ", maxRetryTimes)
 		fmt.Println("retry_interval: ", retryInterval)
 		fmt.Println("queue_size: ", queueSize)
-		fmt.Println("LineDelimiter: ", string(line_delimiter))
 	}
 
 	utils.InitLog(logLevel)
@@ -255,9 +254,12 @@ func paramCheck() {
 				enableConcurrency = false
 			}
 
-			if strings.ToLower(kv[0]) == "line_delimiter" && len(kv[1]) == 1 {
-				line_delimiter = kv[1][0]
-			}
+			if strings.ToLower(kv[0]) == "line_delimiter"   {
+				if len(kv[1]) == 1 {
+					line_delimiter = kv[1][0]
+				} else {
+					log.Errorf("line_delimiter invalid: %s", line_delimiter)
+				}
 
 			if len(kv) > 2 {
 				headers[kv[0]] = strings.Join(kv[1:], ":")
