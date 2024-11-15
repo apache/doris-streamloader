@@ -29,6 +29,7 @@ import (
 
 	loader "doris-streamloader/loader"
 	report "doris-streamloader/report"
+
 	log "github.com/sirupsen/logrus"
 )
 
@@ -127,19 +128,14 @@ func (f *FileReader) Read(reporter *report.Reporter, workers int, maxBytesPerTas
 		loadResp.LoadFiles = append(loadResp.LoadFiles, file.Name())
 		reader := bufio.NewReaderSize(file, f.bufferSize)
 
-		var breakFlag bool = false
 		for {
-			if breakFlag {
-				break
-			}
-
 			if atomic.LoadUint64(&reporter.FinishedWorkers) == atomic.LoadUint64(&reporter.TotalWorkers) {
 				return
 			}
 			line, err := reader.ReadBytes(lineDelimiter)
-			if err == io.EOF {
+			if err == io.EOF && len(line) == 0 {
 				file.Close()
-				breakFlag = true
+				break
 			} else if err != nil {
 				log.Errorf("Read file failed, error message: %v, before retrying, we suggest:\n1.Check the input data files and fix if there is any problem.\n2.Do select count(*) to check whether data is partially loaded.\n3.If the data is partially loaded and duplication is unacceptable, consider dropping the table (with caution that all data in the table will be lost) and retry.\n4.Otherwise, just retry.\n", err)
 				os.Exit(1)
