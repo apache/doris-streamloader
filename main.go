@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"math"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -191,6 +192,21 @@ func initFlags() {
 	utils.InitLog(logLevel)
 }
 
+// Restore hex escape sequences like \xNN to their corresponding characters
+func restoreHexEscapes(s1 string) (string, error) {
+
+	re := regexp.MustCompile(`\\x([0-9A-Fa-f]{2})`)
+
+	return re.ReplaceAllStringFunc(s1, func(match string) string {
+		hexValue := match[2:] // Remove the \x prefix
+		decValue, err := strconv.ParseInt(hexValue, 16, 0)
+		if err != nil {
+			return match
+		}
+		return string(rune(decValue))
+	}), nil
+}
+
 //go:generate go run gen_version.go
 func paramCheck() {
 	if showVersion {
@@ -255,11 +271,15 @@ func paramCheck() {
 			}
 
 			if strings.ToLower(kv[0]) == "line_delimiter" {
-				if len(kv[1]) == 1 {
-					line_delimiter = kv[1][0]
+
+				restored, err := restoreHexEscapes(kv[1])
+				if err != nil || len(restored) != 1 {
+					line_delimiter = '\n'
+					log.Errorf("line_delimiter invalid: %s", kv[1])
 				} else {
-					log.Errorf("line_delimiter invalid: %s", line_delimiter)
+					line_delimiter = restored[0]
 				}
+
 			}
 
 			if len(kv) > 2 {
