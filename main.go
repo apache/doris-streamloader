@@ -82,7 +82,7 @@ var (
 	retryInfo            map[int]int
 	showVersion          bool
 	queueSize            int
-	line_delimiter       byte
+	lineDelimiter        byte
 	bufferPool           = sync.Pool{
 		New: func() interface{} {
 			return make([]byte, 0, bufferSize)
@@ -274,10 +274,10 @@ func paramCheck() {
 
 				restored, err := restoreHexEscapes(kv[1])
 				if err != nil || len(restored) != 1 {
-					line_delimiter = '\n'
+					lineDelimiter = '\n'
 					log.Errorf("line_delimiter invalid: %s", kv[1])
 				} else {
-					line_delimiter = restored[0]
+					lineDelimiter = restored[0]
 				}
 
 			}
@@ -398,7 +398,7 @@ func main() {
 		streamLoad.Load(workers, maxRowsPerTask, maxBytesPerTask, &retryInfo)
 		reporter.Report()
 		defer reporter.CloseWait()
-		reader.Read(reporter, workers, maxBytesPerTask, &retryInfo, loadResp, retryCount, line_delimiter)
+		reader.Read(reporter, workers, maxBytesPerTask, &retryInfo, loadResp, retryCount, lineDelimiter)
 		reader.Close()
 
 		streamLoad.Wait(loadInfo, retryCount, &retryInfo, startTime)
