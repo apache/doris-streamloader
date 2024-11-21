@@ -82,7 +82,7 @@ var (
 	retryInfo            map[int]int
 	showVersion          bool
 	queueSize            int
-	lineDelimiter        byte
+	lineDelimiter        byte = '\n'
 	bufferPool           = sync.Pool{
 		New: func() interface{} {
 			return make([]byte, 0, bufferSize)
@@ -194,6 +194,9 @@ func initFlags() {
 
 // Restore hex escape sequences like \xNN to their corresponding characters
 func restoreHexEscapes(s1 string) (string, error) {
+	if s1 == `\n` {
+		return "\n", nil
+	}
 
 	re := regexp.MustCompile(`\\x([0-9A-Fa-f]{2})`)
 
@@ -274,8 +277,8 @@ func paramCheck() {
 
 				restored, err := restoreHexEscapes(kv[1])
 				if err != nil || len(restored) != 1 {
-					lineDelimiter = '\n'
 					log.Errorf("line_delimiter invalid: %s", kv[1])
+					os.Exit(1)
 				} else {
 					lineDelimiter = restored[0]
 				}
