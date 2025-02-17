@@ -19,6 +19,8 @@ package file
 
 import (
 	"bufio"
+	"doris-streamloader/loader"
+	"doris-streamloader/report"
 	"io"
 	"os"
 	"path/filepath"
@@ -28,8 +30,6 @@ import (
 	"time"
 
 	log "github.com/sirupsen/logrus"
-	report "doris-streamloader/report"
-	loader "doris-streamloader/loader"
 )
 
 type FileReader struct {
