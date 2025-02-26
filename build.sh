@@ -19,6 +19,8 @@
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
 
 rm -rf version.go
+# Formatting Go code with gofmt
+find . -name '*.go' -exec gofmt -w {} \;
 go generate
 go build
 echo "Build success. Output: ${ROOT}/doris-streamloader"

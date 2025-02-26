@@ -19,6 +19,8 @@ package file
 
 import (
 	"bufio"
+	"doris-streamloader/loader"
+	"doris-streamloader/report"
 	"io"
 	"os"
 	"path/filepath"
@@ -26,9 +28,6 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
-
-	loader "doris-streamloader/loader"
-	report "doris-streamloader/report"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -138,7 +137,7 @@ func (f *FileReader) Read(reporter *report.Reporter, workers int, maxBytesPerTas
 				break
 			} else if err != nil {
 				log.Errorf("Read file failed, error message: %v, before retrying, we suggest:\n1.Check the input data files and fix if there is any problem.\n2.Do select count(*) to check whether data is partially loaded.\n3.If the data is partially loaded and duplication is unacceptable, consider dropping the table (with caution that all data in the table will be lost) and retry.\n4.Otherwise, just retry.\n", err)
-				if len(line) !=0 {
+				if len(line) != 0 {
 					log.Error("5.When using a specified line delimiter, the file must end with that delimiter.")
 				}
 				os.Exit(1)
