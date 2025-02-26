@@ -108,7 +108,8 @@ func NewFileReader(filePaths string, batchRows int, batchBytes int, bufferSize i
 }
 
 // Read File
-func (f *FileReader) Read(reporter *report.Reporter, workers int, maxBytesPerTask int, retryInfo *map[int]int, loadResp *loader.Resp, retryCount int) {
+func (f *FileReader) Read(reporter *report.Reporter, workers int, maxBytesPerTask int, retryInfo *map[int]int,
+	loadResp *loader.Resp, retryCount int, lineDelimiter byte) {
 	index := 0
 	data := f.pool.Get().([]byte)
 	count := f.batchRows
@@ -125,16 +126,20 @@ func (f *FileReader) Read(reporter *report.Reporter, workers int, maxBytesPerTas
 	for _, file := range f.files {
 		loadResp.LoadFiles = append(loadResp.LoadFiles, file.Name())
 		reader := bufio.NewReaderSize(file, f.bufferSize)
+
 		for {
 			if atomic.LoadUint64(&reporter.FinishedWorkers) == atomic.LoadUint64(&reporter.TotalWorkers) {
 				return
 			}
-			line, err := reader.ReadBytes('\n')
-			if err == io.EOF {
+			line, err := reader.ReadBytes(lineDelimiter)
+			if err == io.EOF && len(line) == 0 {
 				file.Close()
 				break
 			} else if err != nil {
 				log.Errorf("Read file failed, error message: %v, before retrying, we suggest:\n1.Check the input data files and fix if there is any problem.\n2.Do select count(*) to check whether data is partially loaded.\n3.If the data is partially loaded and duplication is unacceptable, consider dropping the table (with caution that all data in the table will be lost) and retry.\n4.Otherwise, just retry.\n", err)
+				if len(line) != 0 {
+					log.Error("5.When using a specified line delimiter, the file must end with that delimiter.")
+				}
 				os.Exit(1)
 			}
 

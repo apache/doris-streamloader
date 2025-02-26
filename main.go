@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"math"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -81,8 +82,8 @@ var (
 	retryInfo            map[int]int
 	showVersion          bool
 	queueSize            int
-
-	bufferPool = sync.Pool{
+	lineDelimiter        byte = '\n'
+	bufferPool           = sync.Pool{
 		New: func() interface{} {
 			return make([]byte, 0, bufferSize)
 		},
@@ -191,6 +192,24 @@ func initFlags() {
 	utils.InitLog(logLevel)
 }
 
+// Restore hex escape sequences like \xNN to their corresponding characters
+func restoreHexEscapes(s1 string) (string, error) {
+	if s1 == `\n` {
+		return "\n", nil
+	}
+
+	re := regexp.MustCompile(`\\x([0-9A-Fa-f]{2})`)
+
+	return re.ReplaceAllStringFunc(s1, func(match string) string {
+		hexValue := match[2:] // Remove the \x prefix
+		decValue, err := strconv.ParseInt(hexValue, 16, 0)
+		if err != nil {
+			return match
+		}
+		return string(rune(decValue))
+	}), nil
+}
+
 //go:generate go run gen_version.go
 func paramCheck() {
 	if showVersion {
@@ -253,6 +272,19 @@ func paramCheck() {
 			if strings.ToLower(kv[0]) == "format" && strings.ToLower(kv[1]) != "csv" {
 				enableConcurrency = false
 			}
+
+			if strings.ToLower(kv[0]) == "line_delimiter" {
+
+				restored, err := restoreHexEscapes(kv[1])
+				if err != nil || len(restored) != 1 {
+					log.Errorf("line_delimiter invalid: %s", kv[1])
+					os.Exit(1)
+				} else {
+					lineDelimiter = restored[0]
+				}
+
+			}
+
 			if len(kv) > 2 {
 				headers[kv[0]] = strings.Join(kv[1:], ":")
 			} else {
@@ -369,7 +401,7 @@ func main() {
 		streamLoad.Load(workers, maxRowsPerTask, maxBytesPerTask, &retryInfo)
 		reporter.Report()
 		defer reporter.CloseWait()
-		reader.Read(reporter, workers, maxBytesPerTask, &retryInfo, loadResp, retryCount)
+		reader.Read(reporter, workers, maxBytesPerTask, &retryInfo, loadResp, retryCount, lineDelimiter)
 		reader.Close()
 
 		streamLoad.Wait(loadInfo, retryCount, &retryInfo, startTime)
