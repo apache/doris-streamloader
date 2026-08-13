@@ -51,6 +51,14 @@ e.g.:
 doris-streamloader --source_file="data.csv" --url="http://localhost:8330" --header="column_separator:|?columns:col1,col2" --db="testdb" --table="testtbl"
 ```
 
+ORC and Parquet files are streamed without text batching. Each source file is
+sent intact in a separate Stream Load request, and `workers` controls how many
+files can be uploaded concurrently:
+
+```shell
+doris-streamloader --source_file="data/*.orc" --url="http://localhost:8330" --header="format:orc" --db="testdb" --table="testtbl" --workers=4
+```
+
 For additional details and options, refer to our comprehensive docs below.
 
 

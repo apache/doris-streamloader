@@ -217,4 +217,11 @@ func (f *FileReader) Close() {
 	for _, queue := range *f.queues {
 		close(queue)
 	}
+	for _, file := range f.files {
+		_ = file.Close()
+	}
+}
+
+func (f *FileReader) Files() []*os.File {
+	return f.files
 }

@@ -24,6 +24,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -39,6 +40,16 @@ type StreamLoadOption struct {
 	Compress  bool
 	CheckUTF8 bool
 	Timeout   int
+	Workers   int
+}
+
+func IsFileStreamFormat(format string) bool {
+	switch strings.ToLower(strings.TrimSpace(format)) {
+	case "orc", "parquet":
+		return true
+	default:
+		return false
+	}
 }
 
 type StreamLoad struct {
@@ -242,15 +253,15 @@ func (s *StreamLoad) readData(isEOS *atomic.Bool, rawWriter *io.PipeWriter, read
 	}
 }
 
-func (s *StreamLoad) send(url string, reader io.Reader, workerIndex int, taskIndex int) (*http.Response, error) {
+func (s *StreamLoad) send(url string, reader io.Reader, workerIndex int, taskIndex int) (*http.Response, *StreamLoadResp, error) {
 	realUrl := url
 	for {
 		req, err := s.createRequest(realUrl, reader, workerIndex, taskIndex)
 		if err != nil {
 			if req == nil {
-				return nil, err
+				return nil, nil, err
 			} else {
-				return req.Response, err
+				return req.Response, nil, err
 			}
 		}
 
@@ -266,7 +277,7 @@ func (s *StreamLoad) send(url string, reader io.Reader, workerIndex int, taskInd
 		// send request
 		resp, err := client.Do(req)
 		if err != nil {
-			return resp, err
+			return resp, nil, err
 		}
 		defer resp.Body.Close()
 
@@ -274,14 +285,14 @@ func (s *StreamLoad) send(url string, reader io.Reader, workerIndex int, taskInd
 		body, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
 			log.Errorf("Read stream load response failed, response body: %s, error message: %v, it is hard to judge whether load success or not, we suggest:\n1.Do select count(*) to check whether data is partially loaded.\n2.If the data is partially loaded and duplication is unacceptable, consider dropping the table (with caution that all data in the table will be lost) and retry.", body, err)
-			return resp, nil
+			return resp, nil, nil
 		}
 
 		if resp.StatusCode == 307 {
 			realUrl = resp.Header.Get("Location")
 			if realUrl == "" {
 				log.Errorf("Send error, redirectUrl is empty, error message: %v", err)
-				return resp, nil
+				return resp, nil, nil
 			}
 			log.Infof("redirect to %s", realUrl)
 			continue
@@ -291,7 +302,7 @@ func (s *StreamLoad) send(url string, reader io.Reader, workerIndex int, taskInd
 		if resp.StatusCode != 200 {
 			// print response headers
 			log.Debugf("response headers: %v", resp.Header)
-			return resp, fmt.Errorf("response code is not 200, response code: %d, response body: %s", resp.StatusCode, body)
+			return resp, nil, fmt.Errorf("response code is not 200, response code: %d, response body: %s", resp.StatusCode, body)
 		}
 
 		// parse response
@@ -299,10 +310,10 @@ func (s *StreamLoad) send(url string, reader io.Reader, workerIndex int, taskInd
 		err = json.Unmarshal(body, &respMsg)
 		if err != nil {
 			log.Errorf("Parse stream load response failed, response body: %s, error message: %v, it is hard to judge whether load success or not, we suggest:\n1.Do select count(*) to check whether data is partially loaded\n2.If the data is partially loaded and duplication is unacceptable, consider dropping the table (with caution that all data in the table will be lost) and retry.\n", body, err)
-			return resp, nil
+			return resp, nil, nil
 		}
 		if respMsg.Status != "Success" && respMsg.Status != "Publish Timeout" {
-			return resp, fmt.Errorf("stream load failed, response %s", body)
+			return resp, &respMsg, fmt.Errorf("stream load failed, response %s", body)
 		}
 
 		log.Infof("resp: %s", body)
@@ -313,7 +324,7 @@ func (s *StreamLoad) send(url string, reader io.Reader, workerIndex int, taskInd
 		atomic.AddUint64(&s.loadResp.UnselectedRows, uint64(respMsg.NumberUnselectedRows))
 		atomic.AddUint64(&s.loadResp.LoadBytes, uint64(respMsg.LoadBytes))
 
-		return resp, nil
+		return resp, &respMsg, nil
 	}
 }
 
@@ -361,7 +372,7 @@ func (s *StreamLoad) executeGetAndSend(maxRowsPerTask int, maxBytesPerTask int, 
 				workerIndex:     workerIndex,
 				taskIndex:       taskIndex,
 			})
-		if resp, err := s.send(url, NopCloser(pr), workerIndex, taskIndex); err != nil {
+		if resp, _, err := s.send(url, NopCloser(pr), workerIndex, taskIndex); err != nil {
 			s.handleSendError(workerIndex, taskIndex)
 			log.Errorf("Send error, resp: %v error message: %v", resp, err)
 			return
@@ -375,6 +386,85 @@ func (s *StreamLoad) executeGetAndSend(maxRowsPerTask int, maxBytesPerTask int, 
 		taskIndex++
 	}
 	atomic.AddUint64(&s.report.TotalWorkers, 1)
+}
+
+// LoadFiles streams every file as a separate request without interpreting or
+// modifying its contents. This is required for file formats such as ORC and
+// Parquet, whose files cannot be split into text batches.
+func (s *StreamLoad) LoadFiles(files []*os.File, retryInfo *map[int]int) {
+	workers := s.Workers
+	if workers <= 0 {
+		workers = 1
+	}
+
+	selected := make([]int, 0, len(files))
+	for fileIndex, file := range files {
+		if len(*retryInfo) > 0 {
+			if _, retry := (*retryInfo)[fileIndex]; !retry {
+				continue
+			}
+		}
+		selected = append(selected, fileIndex)
+		s.loadResp.LoadFiles = append(s.loadResp.LoadFiles, file.Name())
+	}
+	atomic.StoreUint64(&s.report.TotalWorkers, uint64(len(selected)))
+
+	semaphore := make(chan struct{}, workers)
+	for _, fileIndex := range selected {
+		fileIndex := fileIndex
+		file := files[fileIndex]
+		s.wg.Add(1)
+		go func() {
+			defer s.wg.Done()
+			semaphore <- struct{}{}
+			defer func() { <-semaphore }()
+
+			if _, err := file.Seek(0, io.SeekStart); err != nil {
+				s.handleSendError(fileIndex, 1)
+				log.Errorf("Seek file %s failed, error message: %v", file.Name(), err)
+				return
+			}
+
+			reader := io.Reader(&reportingReader{reader: file, reporter: s.report})
+			if s.Compress {
+				pipeReader, pipeWriter := io.Pipe()
+				go compressLZ4(pipeWriter, reader)
+				reader = pipeReader
+			}
+			resp, loadResult, err := s.send(s.createUrl(), reader, fileIndex, 1)
+			if err != nil {
+				s.handleSendError(fileIndex, 1)
+				log.Errorf("Send file %s failed, resp: %v error message: %v", file.Name(), resp, err)
+				return
+			}
+			if loadResult != nil {
+				atomic.AddUint64(&s.loadResp.TotalRows, uint64(loadResult.NumberTotalRows))
+			}
+			atomic.AddUint64(&s.report.FinishedWorkers, 1)
+		}()
+	}
+}
+
+func compressLZ4(writer *io.PipeWriter, reader io.Reader) {
+	compressor := lz4.NewWriter(writer)
+	_, copyErr := io.Copy(compressor, reader)
+	closeErr := compressor.Close()
+	if copyErr != nil {
+		_ = writer.CloseWithError(copyErr)
+		return
+	}
+	_ = writer.CloseWithError(closeErr)
+}
+
+type reportingReader struct {
+	reader   io.Reader
+	reporter *report.Reporter
+}
+
+func (r *reportingReader) Read(p []byte) (int, error) {
+	n, err := r.reader.Read(p)
+	r.reporter.IncrSendBytes(int64(n))
+	return n, err
 }
 
 func (s *StreamLoad) ExecuteGetAndSend(maxRowsPerTask int, maxBytesPerTask int, workerIndex int) {
