@@ -83,6 +83,7 @@ var (
 	showVersion          bool
 	queueSize            int
 	lineDelimiter        byte = '\n'
+	fileStreamFormat     bool
 	bufferPool           = sync.Pool{
 		New: func() interface{} {
 			return make([]byte, 0, bufferSize)
@@ -272,6 +273,9 @@ func paramCheck() {
 			if strings.ToLower(kv[0]) == "format" && strings.ToLower(kv[1]) != "csv" {
 				enableConcurrency = false
 			}
+			if strings.ToLower(kv[0]) == "format" {
+				fileStreamFormat = loader.IsFileStreamFormat(kv[1])
+			}
 
 			if strings.ToLower(kv[0]) == "line_delimiter" {
 
@@ -370,6 +374,7 @@ func createStreamLoad(report *report.Reporter, queues []chan []byte) *loader.Str
 		Compress:  compress,
 		CheckUTF8: checkUTF8,
 		Timeout:   timeout,
+		Workers:   workers,
 	}
 	return loader.NewStreamLoad(url, dbName, tableName, userName, password, headers, queues, &bufferPool, streamLoadOption, report, loadResp)
 }
@@ -397,14 +402,21 @@ func main() {
 			startTime = time.Now()
 		}
 
-		maxRowsPerTask = math.MinInt32
-		streamLoad.Load(workers, maxRowsPerTask, maxBytesPerTask, &retryInfo)
 		reporter.Report()
 		defer reporter.CloseWait()
-		reader.Read(reporter, workers, maxBytesPerTask, &retryInfo, loadResp, retryCount, lineDelimiter)
-		reader.Close()
+		if fileStreamFormat {
+			streamLoad.LoadFiles(reader.Files(), &retryInfo)
+		} else {
+			maxRowsPerTask = math.MinInt32
+			streamLoad.Load(workers, maxRowsPerTask, maxBytesPerTask, &retryInfo)
+			reader.Read(reporter, workers, maxBytesPerTask, &retryInfo, loadResp, retryCount, lineDelimiter)
+			reader.Close()
+		}
 
 		streamLoad.Wait(loadInfo, retryCount, &retryInfo, startTime)
+		if fileStreamFormat {
+			reader.Close()
+		}
 		if !loadInfo.NeedRetry || retryCount >= loadInfo.RetryTimes-1 {
 			break
 		}
