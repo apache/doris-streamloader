@@ -18,26 +18,22 @@
 ---
 name: License Check
 on:
-  pull_request_target:
+  pull_request:
   push:
     branches:
       - master
+
+permissions:
+  contents: read
+
 jobs:
   license-check:
     name: "License Check"
     runs-on: ubuntu-latest
     steps:
-      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        if: ${{ github.event_name != 'pull_request_target' }}
-        uses: actions/checkout@v3
-
-      - name: Checkout ${{ github.ref }} ( ${{ github.event.pull_request.head.sha }} )
-        if: ${{ github.event_name == 'pull_request_target' }}
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
         with:
-          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
 
       - name: Check License
         uses: apache/skywalking-eyes@v0.2.0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
