@@ -43,14 +43,43 @@ github:
     squash:  true
     merge:   false
     rebase:  false
+  pull_requests:
+    del_branch_on_merge: true
+  dependabot_alerts: true
+  dependabot_updates: true
+  # Preserve the existing classic approval rule during ruleset rollout.
   protected_branches:
     master:
-      required_status_checks:
-        # if strict is true, means "Require branches to be up to date before merging".
-        strict: false
       required_pull_request_reviews:
         dismiss_stale_reviews: true
         required_approving_review_count: 1
+  rulesets:
+    - name: Master branch protection
+      type: branch
+      branches:
+        includes:
+          - master
+      restrict_deletion: true
+      restrict_force_push: true
+      required_linear_history: true
+      required_conversation_resolution: true
+      required_pull_request_reviews:
+        dismiss_stale_reviews: true
+        require_last_push_approval: true
+        required_approving_review_count: 1
+      required_status_checks:
+        # 15368 is the GitHub Actions app ID reported by these checks.
+        - name: build
+          app_slug: 15368
+        - name: License Check
+          app_slug: 15368
+    - name: Release tag protection
+      type: tag
+      branches:
+        includes:
+          - '[0-9]*.[0-9]*.[0-9]*'
+      restrict_deletion: true
+      restrict_force_push: true
   collaborators:
     - freemandealer
     - JackDrogon
